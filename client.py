@@ -1,7 +1,10 @@
 # Client Implementation
 
-def main():
+import getpass
+import 
+import sys
+def main() -> int:
     return "NYI"
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
