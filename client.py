@@ -80,20 +80,6 @@ def main() -> int:
             print("Good")
         elif command == "Disconnected from the sever":
             print("Disconnected")
-        
-
-
-    
-
-
-        
-
-
-
-
-      
-
-
 
 
 if __name__ == "__main__":
