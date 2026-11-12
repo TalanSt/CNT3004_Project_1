@@ -3,6 +3,7 @@
 import os
 import socket
 import ssl
+import sys
 
 
 IP = "172.19.168.48"
@@ -91,7 +92,9 @@ def main() -> int:
             print(client.recv(SIZE).decode(FORMAT))
             
 
-        
+        if command == "logout":
+            client.send("OK@logout".encode(FORMAT))
+            sys.exit()
 
 
         
