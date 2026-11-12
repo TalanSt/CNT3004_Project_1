@@ -4,6 +4,7 @@ import os
 import socket
 import ssl
 
+
 IP = "172.19.168.48"
 PORT = 4045
 ADDR = (IP,PORT)
@@ -11,21 +12,21 @@ SIZE = 1024 ## byte .. buffer size
 FORMAT = "utf-8"
 SERVER_DATA_PATH = "server_data"
 
+#def handle_client(conn, addr):
+    
+
 def main() -> int:
     context = ssl.create_default_context(cafile="cert.pem")
     context.check_hostname = False
 
     socket_t = socket.create_connection(ADDR)
     client = context.wrap_socket(socket_t)
-    
-    print("Connected to server")
 
-    conf = client.recv(SIZE).decode(FORMAT)
-    if conf != "OK@Ready":
-        return
+    client.recv(SIZE)
 
     client.send("OK".encode(FORMAT))
     print("Handshake completed")
+
 
     createOrSign = input("Choose c to create account or s to sign in > ")
     client.send(createOrSign.encode(FORMAT))
@@ -53,15 +54,15 @@ def main() -> int:
             print("Retry.")
 
     while True:
-        client.recv(SIZE)
+        print(client.recv(SIZE).decode(FORMAT))
 
         signInUser = input("Enter Username:")
         client.send(signInUser.encode(FORMAT))
-        client.recv(SIZE)
+        print(client.recv(SIZE).decode(FORMAT))
 
         signInPass = input("Enter Password:")
         client.send(signInPass.encode(FORMAT))
-        client.recv(SIZE)
+        print(client.recv(SIZE).decode(FORMAT))
 
         signInConfirm = client.recv(SIZE).decode(FORMAT).split("@")
 
@@ -72,14 +73,43 @@ def main() -> int:
         print("Server reported not success: ", signInConfirm[1])
         print("Retry.")
 
+
     while True:
         data = client.recv(SIZE).decode(FORMAT)
-        command, message = data.split("@")
+
+        command = input("Enter command: ")
 
         if command == "OK":
             print("Good")
         elif command == "Disconnected from the sever":
             print("Disconnected")
+
+
+    
+        if command == "dir" or command == "ls" or command == "directory":
+            client.send("OK@dir".encode(FORMAT))
+            print(client.recv(SIZE).decode(FORMAT))
+            
+
+        
+
+
+        
+
+
+
+        
+
+        # elif command == "UPLOAD"
+        # elif command == "DOWNLOAD"
+        # elif command == "DELETE"
+        # elif command == "MKDIR"
+        # elif command == "RMDIR"
+        # elif command == "LOGOUT"
+        # else 
+        # conn.send("OK@Ready.".encode(ENCODING)) 
+        # conn.close()
+        #print("[Disconnected] {addr} disconnected.")
 
 
 if __name__ == "__main__":
