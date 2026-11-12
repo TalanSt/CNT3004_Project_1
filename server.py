@@ -10,7 +10,7 @@ import ssl
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.types import PrivateKeyTypes
 
-IP = "localhost"
+IP = "172.19.168.48"
 PORT = 4045
 ADDR = (IP, PORT)
 SIZE = 1024
@@ -42,6 +42,7 @@ def handle_client(conn: ssl.SSLSocket, addr):
     if create_or_sign.lower()[0] == "c":
         in_account_creation = True
 
+    # Account Creation
     while in_account_creation:
         print(f"Creating account on {addr}")
 
@@ -70,6 +71,7 @@ def handle_client(conn: ssl.SSLSocket, addr):
         print(f"{addr} created account named {username}")
         in_account_creation = False
 
+    # Signing in
     while not signed_in:
         print(f"Signing in on {addr}")
         conn.send("READY@Ready for sign in".encode(FORMAT))
@@ -81,6 +83,8 @@ def handle_client(conn: ssl.SSLSocket, addr):
         password = conn.recv(SIZE).decode(FORMAT)
         print(f"Received password sign on on {addr}")
         conn.send("REC@Received password".encode(FORMAT))
+
+        time.sleep(0.5)
 
         if exists(SERVER_DATA_PATH / username) and exists(SERVER_DATA_PATH / username / ".pass"):
             with open(SERVER_DATA_PATH / username / ".pass", "r") as f:
@@ -106,6 +110,44 @@ def handle_client(conn: ssl.SSLSocket, addr):
         conn.send("NO_SIGN@Username or password is incorrect.".encode(FORMAT))
         print(f"{addr} gave the wrong username or password.")
         time.sleep(1.5)
+
+    # Actual command interface
+    while True:
+        conn.send("AWAIT@Awaiting input".encode(FORMAT))
+        cmd = conn.recv(SIZE).decode(FORMAT)
+
+        cmd_split = cmd.split("@")
+
+        if cmd_split[0] != "OK":
+            break
+
+        cmd_args = cmd_split[1].split(" ")
+        cmd_name = cmd_args[0]
+
+        if cmd_name == "dir" or cmd_name == "ls" or cmd_name == "directory":
+            ls_res = subprocess.run(["ls", "-R", str(current_dir.absolute())], capture_output=True, text=True)
+
+            output = ls_res.stdout
+
+            conn.send(output.encode(FORMAT))
+
+        if cmd_name == "logout":
+            conn.close()
+            print(f"Successfully closed connection from {addr}")
+            break
+
+        if cmd_name == "folder":
+            cmd_sub = cmd_args[1]
+            if cmd_sub == "add" or cmd_sub == "create":
+                cmd_folder_name = cmd_args[2]
+                if (current_dir / cmd_folder_name).exists():
+                    conn.send("ERR@Folder already exists".encode(FORMAT))
+                    continue
+
+                (current_dir / cmd_folder_name).mkdir()
+                conn.send("OK@Created subfolder".encode(FORMAT))
+
+
 
 def main():
 
