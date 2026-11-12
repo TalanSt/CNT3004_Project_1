@@ -223,3 +223,6 @@ __marimo__/
 .streamlit/secrets.toml
 
 server_data/
+
+key.pem
+cert.pem
