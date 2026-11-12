@@ -2,6 +2,7 @@
 
 import os
 import socket
+import ssl
 
 IP = "172.19.168.48"
 PORT = 4045
@@ -11,8 +12,11 @@ FORMAT = "utf-8"
 SERVER_DATA_PATH = "server_data"
 
 def main() -> int:
-    client = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-    client.connect(ADDR)
+    context = ssl.create_default_context(cafile="cert.pem")
+    context.check_hostname = False
+
+    socket_t = socket.create_connection(ADDR)
+    client = context.wrap_socket(socket_t)
     
     print("Connected to server")
 
