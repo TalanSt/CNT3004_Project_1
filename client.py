@@ -97,6 +97,24 @@ def main() -> int:
             sys.exit()
 
 
+        command_arg = command.split(" ")
+        command_name = command_arg[0]
+
+        if command_name == "folder":
+            if command_arg.count() < 3:
+                print("Invalid command")
+                continue
+
+            client.send(f"OK@{command}".encode(FORMAT))
+
+            folder_response = client.recv(SIZE).decode(FORMAT).split("@")
+
+            if folder_response[0] == "OK":
+                print(folder_response[1])
+                
+            if folder_response[0] == "ERR":
+                print(folder_response[1])
+
         
 
 
