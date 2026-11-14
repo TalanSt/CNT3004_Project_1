@@ -115,6 +115,21 @@ def main() -> int:
             if folder_response[0] == "ERR":
                 print(folder_response[1])
 
+        if command_name == "delete":
+            if len(command_arg) < 2:
+                print("Invalid command")
+                continue
+
+            client.send(f"OK@{command}".encode(FORMAT))
+
+            folder_response = client.recv(SIZE).decode(FORMAT).split("@")
+
+            if folder_response[0] == "OK":
+                print(folder_response[1])
+                
+            if folder_response[0] == "ERR":
+                print(folder_response[1])
+
         
 
 
