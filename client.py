@@ -4,14 +4,17 @@ import os
 import socket
 import ssl
 import sys
+import threading
 
+from pathlib import Path
 
 IP = "172.19.168.48"
 PORT = 4045
 ADDR = (IP,PORT)
-SIZE = 1024 ## byte .. buffer size
+SIZE = 8096 ## byte .. buffer size
 FORMAT = "utf-8"
 SERVER_DATA_PATH = "server_data"
+BASE_DIR = Path.cwd()
 
 #def handle_client(conn, addr):
     
@@ -101,9 +104,6 @@ def main() -> int:
         command_name = command_arg[0]
 
         if command_name == "folder":
-            if len(command_arg) < 3:
-                print("Invalid command")
-                continue
 
             client.send(f"OK@{command}".encode(FORMAT))
 
@@ -116,9 +116,6 @@ def main() -> int:
                 print(folder_response[1])
 
         if command_name == "delete":
-            if len(command_arg) < 2:
-                print("Invalid command")
-                continue
 
             client.send(f"OK@{command}".encode(FORMAT))
 
@@ -130,22 +127,77 @@ def main() -> int:
             if folder_response[0] == "ERR":
                 print(folder_response[1])
 
-        
+        if command_name == "upload":
+
+            source = command_arg[1]
+            source_path = BASE_DIR / source
+
+            client.send(f"OK@{command}".encode(FORMAT))
+
+            folder_response = client.recv(SIZE).decode(FORMAT).split("@")
+
+            if folder_response[0] == "ERR":
+                print(folder_response[1])
+
+            if folder_response[0] == "ASK":
+                ask_response = input(folder_response[1])
+                client.send(ask_response.encode(FORMAT))
+
+                overwrite_response = client.recv(SIZE).decode(FORMAT).split("@")
+
+                if overwrite_response[0] == "NOT":
+                    print(overwrite_response[1])
+                    continue
+
+                if overwrite_response[0] == "PROC":
+                    print(overwrite_response[1])
 
 
+            print(client.recv(SIZE).decode(FORMAT))
 
-        
+            with open(source_path, "rb") as file:
+                total_size = os.fstat(file.fileno()).st_size
 
+                client.send(file.read(total_size))
+
+                client.recv(SIZE)
+
+                print("Done.")
+
+                """
+                while True:
+                    for i in range(8):
+                        new_file = file.read(SIZE)
+
+                        if not new_file:
+                            client.send("DONE".encode(FORMAT))
+
+                            upload_conf = client.recv(SIZE).decode(FORMAT).split("@")
+                            print(upload_conf[1])
+                            
+                            break
+
+                        client.send(new_file)
+
+                    print(f"Percent Completed {round((file.tell() / total_size) * 100, 2)}")
+
+                    send_continue = client.recv(SIZE).decode(FORMAT).split("@")
+
+                    if (send_continue[0] == "CONT"):
+                        continue
+
+                    else:
+                        break
+                """
+
+            
+
+                
+
+                    
         # elif command == "UPLOAD"
         # elif command == "DOWNLOAD"
-        # elif command == "DELETE"
-        # elif command == "MKDIR"
-        # elif command == "RMDIR"
-        # elif command == "LOGOUT"
-        # else 
-        # conn.send("OK@Ready.".encode(ENCODING)) 
-        # conn.close()
-        #print("[Disconnected] {addr} disconnected.")
+
 
 
 if __name__ == "__main__":
