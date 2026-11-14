@@ -55,15 +55,15 @@ def main() -> int:
             print("Retry.")
 
     while True:
-        print(client.recv(SIZE).decode(FORMAT))
+        client.recv(SIZE).decode(FORMAT)
 
-        signInUser = input("Enter Username:")
+        signInUser = input("Enter Username: ")
         client.send(signInUser.encode(FORMAT))
-        print(client.recv(SIZE).decode(FORMAT))
+        client.recv(SIZE).decode(FORMAT)
 
-        signInPass = input("Enter Password:")
+        signInPass = input("Enter Password: ")
         client.send(signInPass.encode(FORMAT))
-        print(client.recv(SIZE).decode(FORMAT))
+        client.recv(SIZE).decode(FORMAT)
 
         signInConfirm = client.recv(SIZE).decode(FORMAT).split("@")
 
@@ -101,7 +101,7 @@ def main() -> int:
         command_name = command_arg[0]
 
         if command_name == "folder":
-            if command_arg.count() < 3:
+            if len(command_arg) < 3:
                 print("Invalid command")
                 continue
 
