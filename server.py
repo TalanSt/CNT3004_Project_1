@@ -1,4 +1,5 @@
 from os import path, system
+import os
 from os.path import exists, isfile
 from pathlib import Path
 import socket
@@ -7,13 +8,10 @@ import subprocess
 import time
 import ssl
 
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric.types import PrivateKeyTypes
-
 IP = "172.19.168.48"
 PORT = 4045
 ADDR = (IP, PORT)
-SIZE = 1024
+SIZE = 8096
 FORMAT = "utf-8"
 BASE_DIR = Path.cwd()
 SERVER_DATA_PATH = BASE_DIR / "server_data"
@@ -137,16 +135,177 @@ def handle_client(conn: ssl.SSLSocket, addr):
             break
 
         if cmd_name == "folder":
+            if len(cmd_args) != 3:
+                print(f"{addr} gave invalid arguments on folder cmd")
+                conn.send("ERR@Incorrect arguments: folder [add|remove] [name]".encode(FORMAT))
+                continue
+
             cmd_sub = cmd_args[1]
             if cmd_sub == "add" or cmd_sub == "create":
                 cmd_folder_name = cmd_args[2]
                 if (current_dir / cmd_folder_name).exists():
                     conn.send("ERR@Folder already exists".encode(FORMAT))
+                    print(f"{addr} tried to make a folder that already exists.")
                     continue
 
                 (current_dir / cmd_folder_name).mkdir()
                 conn.send("OK@Created subfolder".encode(FORMAT))
+                print(f"{addr} created a new folder")
+                continue
 
+            if cmd_sub == "del" or cmd_sub == "delete" or cmd_sub == "remove":
+                cmd_folder_name = cmd_args[2]
+                if not (current_dir / cmd_folder_name).exists():
+                    conn.send("ERR@Folder does not exist.".encode(FORMAT))
+                    print(f"{addr} tried to remove a folder that doesn't exist.")
+                    continue
+                if not (current_dir / cmd_folder_name).is_dir():
+                    conn.send("ERR@Given a file, not a folder.".encode(FORMAT))
+                    print(f"{addr} tried to remove a file with the folder command.")
+                    continue
+
+                (current_dir / cmd_folder_name).rmdir()
+                conn.send("OK@Deleted folder and its contents.".encode(FORMAT))
+                print(f"{addr} removed a folder.")
+                continue
+
+            conn.send("ERR@Incorrect arguments: folder [add|remove] [name]".encode(FORMAT))
+            print(f"{addr} gave invalid arguments on folder cmd.")
+            continue
+
+        if cmd_name == "delete":
+            if len(cmd_args) != 2:
+                conn.send("ERR@Incorrect arguments: delete [name]".encode(FORMAT))
+                print(f"{addr} gave invalid arguments on delete cmd.")
+                continue
+
+            delete_file = current_dir / cmd_args[1]
+            if not delete_file.exists():
+                conn.send("ERR@File does not exist.".encode(FORMAT))
+                print(f"{addr} tried to delete a file that does not exist.")
+                continue
+
+            if not delete_file.is_file():
+                conn.send("ERR@Given path is not a file.".encode(FORMAT))
+                print(f"{addr} tried to delete a folder with the delete cmd.")
+                continue
+
+            delete_file.unlink()
+            conn.send("OK@Deleted file.".encode(FORMAT))
+            print(f"{addr} deleted a file.")
+            continue
+
+        if cmd_name == "upload" or cmd_name == "up":
+            if len(cmd_args) != 3:
+                conn.send("ERR@Invalid arguments. upload [source] [destination]".encode(FORMAT))
+                print(f"{addr} gave invalid arguments on upload cmd")
+                continue
+
+            source = cmd_args[1]
+            destination = cmd_args[2]
+
+            destination_path = current_dir / destination
+
+            if destination_path.exists():
+                if destination_path.is_dir():
+                    conn.send("ERR@Given path is a directory and cannot be overwritten.".encode(FORMAT))
+                    print(f"{addr} attempted to upload a file when it exists as a directory.")
+                    continue
+
+                conn.send("ASK@File already exists. Overwrite [y/N]? ".encode(FORMAT))
+                print(f"{addr} is attempting to upload a file that already exists. Asking to overwrite.")
+
+                overwrite = conn.recv(SIZE).decode(FORMAT)[0]
+
+                if overwrite.lower() == "n":
+                    conn.send("NOT@Nothing happened.".encode(FORMAT))
+                    print(f"{addr} decided to not overwrite.")
+                    continue
+
+                print(f"{addr} will overwrite the file.")
+                conn.send("PROC@Proceed with file upload.".encode(FORMAT))
+                destination_path.unlink()
+
+            conn.send("READY@Ready to receive file.".encode(FORMAT))
+
+            with open(destination_path, "ab") as file:
+                i = 0
+
+                orig = conn.gettimeout()
+                conn.settimeout(2.5)
+
+                try:
+                    while True:
+                        print(f"Received chunk. {i}")
+
+                        bits = conn.recv(SIZE)
+
+                        file.write(bits)
+
+                        i = i + 1
+                except TimeoutError:
+                    pass
+
+                print("Finished upload")
+
+                conn.send("OK@Finished upload".encode(FORMAT))
+
+                conn.settimeout(orig)
+
+                """print(f"Receiving file from {addr}")
+                while True:
+
+                    finished = False
+                    for i in range(8):
+
+                        bits = conn.recv(SIZE)
+                        print(f"Received chunk from {addr}")
+
+                        if bits.decode(FORMAT) == "DONE":
+                            print(f"Finished uploading file from {addr}.")
+                            conn.send("OK@Done.".encode(FORMAT))
+                            finished = True
+                            break
+
+                        file.write(bits)
+
+                    conn.send("CONT@Continue sending bytes.".encode(FORMAT))
+
+                    if finished:
+                        break"""
+
+        if cmd_name == "download" or cmd_name == "dl":
+            if len(cmd_args) != 3:
+                conn.send("ERR@Incorrect Arguments: download [server_source] [client_destination]".encode(FORMAT))
+                continue
+
+            source = cmd_args[1]
+            destination = cmd_args[2]
+
+            source_path = current_dir / source
+
+            if not source_path.exists():
+                conn.send("ERR@Source file does not exist".encode(FORMAT))
+                continue
+
+            if source_path.is_dir():
+                conn.send("ERR@Source arg is a directory, not a file.".encode(FORMAT))
+                continue
+
+            print("Ready to send file.")
+
+            conn.send("OK@Ready".encode(FORMAT))
+            conn.recv(SIZE)
+
+            with open(source_path, "rb") as file:
+                print("Sending file.")
+                file_size = source_path.stat().st_size
+
+                conn.send(file.read(file_size))
+
+
+            conn.recv(SIZE)
+            print("Done.")
 
 
 def main():
