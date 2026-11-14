@@ -6,6 +6,7 @@ import ssl
 import sys
 import threading
 
+
 from pathlib import Path
 
 IP = "172.19.168.48"
@@ -191,11 +192,58 @@ def main() -> int:
                 """
 
             
+        if command_name == "download":
+
+            client.send(f"OK@{command}".encode(FORMAT))
+
+            destination = command_arg[2]
+            destination_path = BASE_DIR / destination 
+
+            folder_response = client.recv(SIZE).decode(FORMAT).split("@")
+
+            if folder_response[0] == "ERR":
+                print(folder_response[0])
+                continue
+
+
+            orig = client.gettimeout()
+            client.settimeout(2.5)
+            client.send("OK".encode(FORMAT))
+
+            with open(destination_path, "ab") as file:
+                try:
+                    while True:
+                        byte = client.recv(SIZE)
+                        file.write(byte)
+                except TimeoutError:
+                    pass
+                    
+            client.settimeout(orig)
+
+            client.send("Ok".encode(FORMAT))
+            print("Download Complete")
+                
+
+        
+
+            
+
+       
+
+
+
+
+
+
+
+
+            
+                
 
                 
 
                     
-        # elif command == "UPLOAD"
+    
         # elif command == "DOWNLOAD"
 
 
