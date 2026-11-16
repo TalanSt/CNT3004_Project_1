@@ -32,10 +32,8 @@ def main() -> int:
     client.send("OK".encode(FORMAT))
     print("Handshake completed")
 
-
     createOrSign = input("Choose c to create account or s to sign in > ")
     client.send(createOrSign.encode(FORMAT))
-
 
     if createOrSign.lower()[0] == "c":
 
@@ -78,7 +76,6 @@ def main() -> int:
         print("Server reported not success: ", signInConfirm[1])
         print("Retry.")
 
-
     while True:
         data = client.recv(SIZE).decode(FORMAT)
 
@@ -89,17 +86,13 @@ def main() -> int:
         elif command == "Disconnected from the sever":
             print("Disconnected")
 
-
-    
         if command == "dir" or command == "ls" or command == "directory":
             client.send("OK@dir".encode(FORMAT))
             print(client.recv(SIZE).decode(FORMAT))
-            
 
         if command == "logout":
             client.send("OK@logout".encode(FORMAT))
             sys.exit()
-
 
         command_arg = command.split(" ")
         command_name = command_arg[0]
@@ -112,7 +105,7 @@ def main() -> int:
 
             if folder_response[0] == "OK":
                 print(folder_response[1])
-                
+
             if folder_response[0] == "ERR":
                 print(folder_response[1])
 
@@ -124,7 +117,7 @@ def main() -> int:
 
             if folder_response[0] == "OK":
                 print(folder_response[1])
-                
+
             if folder_response[0] == "ERR":
                 print(folder_response[1])
 
@@ -153,7 +146,6 @@ def main() -> int:
                 if overwrite_response[0] == "PROC":
                     print(overwrite_response[1])
 
-
             print(client.recv(SIZE).decode(FORMAT))
 
             with open(source_path, "rb") as file:
@@ -165,33 +157,6 @@ def main() -> int:
 
                 print("Done.")
 
-                """
-                while True:
-                    for i in range(8):
-                        new_file = file.read(SIZE)
-
-                        if not new_file:
-                            client.send("DONE".encode(FORMAT))
-
-                            upload_conf = client.recv(SIZE).decode(FORMAT).split("@")
-                            print(upload_conf[1])
-                            
-                            break
-
-                        client.send(new_file)
-
-                    print(f"Percent Completed {round((file.tell() / total_size) * 100, 2)}")
-
-                    send_continue = client.recv(SIZE).decode(FORMAT).split("@")
-
-                    if (send_continue[0] == "CONT"):
-                        continue
-
-                    else:
-                        break
-                """
-
-            
         if command_name == "download":
 
             client.send(f"OK@{command}".encode(FORMAT))
@@ -205,7 +170,6 @@ def main() -> int:
                 print(folder_response[0])
                 continue
 
-
             orig = client.gettimeout()
             client.settimeout(2.5)
             client.send("OK".encode(FORMAT))
@@ -217,38 +181,11 @@ def main() -> int:
                         file.write(byte)
                 except TimeoutError:
                     pass
-                    
+
             client.settimeout(orig)
 
             client.send("Ok".encode(FORMAT))
             print("Download Complete")
-
-        
-                
-
-        
-
-            
-
-       
-
-
-
-
-
-
-
-
-            
-                
-
-                
-
-                    
-    
-        # elif command == "DOWNLOAD"
-
-
 
 if __name__ == "__main__":
     main()
