@@ -252,28 +252,6 @@ def handle_client(conn: ssl.SSLSocket, addr):
 
                 conn.settimeout(orig)
 
-                """print(f"Receiving file from {addr}")
-                while True:
-
-                    finished = False
-                    for i in range(8):
-
-                        bits = conn.recv(SIZE)
-                        print(f"Received chunk from {addr}")
-
-                        if bits.decode(FORMAT) == "DONE":
-                            print(f"Finished uploading file from {addr}.")
-                            conn.send("OK@Done.".encode(FORMAT))
-                            finished = True
-                            break
-
-                        file.write(bits)
-
-                    conn.send("CONT@Continue sending bytes.".encode(FORMAT))
-
-                    if finished:
-                        break"""
-
         if cmd_name == "download" or cmd_name == "dl":
             if len(cmd_args) != 3:
                 conn.send("ERR@Incorrect Arguments: download [server_source] [client_destination]".encode(FORMAT))
@@ -302,7 +280,6 @@ def handle_client(conn: ssl.SSLSocket, addr):
                 file_size = source_path.stat().st_size
 
                 conn.send(file.read(file_size))
-
 
             conn.recv(SIZE)
             print("Done.")
