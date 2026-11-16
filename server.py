@@ -8,7 +8,7 @@ import subprocess
 import time
 import ssl
 
-IP = "172.19.168.48"
+IP = "localhost"
 PORT = 4045
 ADDR = (IP, PORT)
 SIZE = 8096
@@ -111,6 +111,7 @@ def handle_client(conn: ssl.SSLSocket, addr):
 
     # Actual command interface
     while True:
+        time.sleep(0.5)
         conn.send("AWAIT@Awaiting input".encode(FORMAT))
         cmd = conn.recv(SIZE).decode(FORMAT)
 
@@ -225,20 +226,22 @@ def handle_client(conn: ssl.SSLSocket, addr):
                 print(f"{addr} will overwrite the file.")
                 conn.send("PROC@Proceed with file upload.".encode(FORMAT))
                 destination_path.unlink()
+            else:
+                conn.send("OK@No need to overwrite.".encode(FORMAT))
 
-            conn.send("READY@Ready to receive file.".encode(FORMAT))
-
-            with open(destination_path, "ab") as file:
+            with open(destination_path, "wb") as file:
                 i = 0
 
                 orig = conn.gettimeout()
                 conn.settimeout(2.5)
 
+                conn.send("READY@Ready to receive file.".encode(FORMAT))
+
                 try:
                     while True:
-                        print(f"Received chunk. {i}")
-
                         bits = conn.recv(SIZE)
+
+                        print(f"Received chunk. {i}")
 
                         file.write(bits)
 
